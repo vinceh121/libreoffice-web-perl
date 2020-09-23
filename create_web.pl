@@ -54,7 +54,7 @@ while (my $f = $files->()) { # Go over every file in folder
 	my $outsub = path($out, $f->parent);
 	my $nf = path($outsub, $f . "." . $outfmt);
 	print "\t", colored("$f -> $nf", "cyan"), "\n";
-	system($opt_l . " --convert-to " . $outfmt . " --outdir \"" . $outsub . "\" \"" . $f . "\"");
+	system($opt_l . " --headless --convert-to " . $outfmt . " --outdir \"" . $outsub . "\" \"" . $f . "\"");
 }
 
 
