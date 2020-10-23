@@ -27,6 +27,7 @@ use warnings;
 use Path::Tiny;
 use Term::ANSIColor;
 use Getopt::Std;
+use Syntax::Kamelon;
 
 our($opt_l);
 
@@ -42,20 +43,38 @@ $out->mkpath();
 
 my $files = $start->iterator( {recurse => 1} );
 
+my $highlighter = new Syntax::Kamelon(formatter => ["HTML4"], noindex => 1);
 
 while (my $f = $files->()) { # Go over every file in folder
-	next if ($f =~ m/^\.git/ || $f =~ m/html/);
-	next if !($f =~ m/.fodt/ || $f =~ m/.fodg/ || $f =~ m/.fods/);
-	my $outfmt = "html";
+	next if $f =~ m/^\.git/;
+	next if $f =~ m/$out/;
+	next if $f->is_dir;
+	if ($f =~ m/.fodt/ || $f =~ m/.fodg/ || $f =~ m/.fods/) {
+		my $outfmt = "html";
 
-	if ($f =~ m/.fodg/) {
-		$outfmt = "svg";
+		if ($f =~ m/.fodg/) {
+			$outfmt = "svg";
+		}
+
+		my $outsub = path($out, $f->parent);
+		my $nf = path($outsub, $f . "." . $outfmt);
+		print "\t", colored("(LO/$outfmt) $f -> $nf", "cyan"), "\n";
+		system($opt_l . " --headless --convert-to " . $outfmt . " --outdir \"" . $outsub . "\" \"" . $f . "\"");
+	} else {
+		my $syn = $highlighter->SuggestSyntax($f->basename);
+		next if !$syn;
+
+		$highlighter->Syntax($syn);
+
+		my $data = $f->slurp;
+		$highlighter->Parse($data);
+		my $formatted = $highlighter->Format;
+
+		my $nf = path($out, $f . ".html");
+		$nf->touchpath;
+		print "\t", colored("(CODE/$syn) $f -> $nf", "cyan"), "\n";
+		$nf->spew($formatted);
 	}
-
-	my $outsub = path($out, $f->parent);
-	my $nf = path($outsub, $f . "." . $outfmt);
-	print "\t", colored("$f -> $nf", "cyan"), "\n";
-	system($opt_l . " --headless --convert-to " . $outfmt . " --outdir \"" . $outsub . "\" \"" . $f . "\"");
 }
 
 
