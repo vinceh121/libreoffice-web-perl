@@ -44,7 +44,8 @@ my $files = $start->iterator( {recurse => 1} );
 
 
 while (my $f = $files->()) { # Go over every file in folder
-	next if !($f =~ m/.fodt/ || $f =~ m/.fodg/ || $f =~ m/.fods/) && ($f =~ m/^\.git/ || $f =~ m/html/);
+	next if ($f =~ m/^\.git/ || $f =~ m/html/);
+	next if !($f =~ m/.fodt/ || $f =~ m/.fodg/ || $f =~ m/.fods/);
 	my $outfmt = "html";
 
 	if ($f =~ m/.fodg/) {
@@ -60,7 +61,7 @@ while (my $f = $files->()) { # Go over every file in folder
 
 print colored("Generating index...", "magenta"), "\n";
 
-my $index = "<html><head><link rel='stylesheet' href='https://www.w3schools.com/w3css/4/w3.css'></head><body class='w3-indigo w3-padding'><h1>Index of files</h1><ul style='list-style: none'>\n";
+my $index = "<html><head><link rel='stylesheet' href='https://www.w3schools.com/w3css/4/w3.css'></head><body class='w3-padding'><h1>Index of files</h1><ul style='list-style: none'>\n";
 
 #my $subs = $out->iterator( {recurse => 1} );
 
@@ -90,7 +91,22 @@ sub AddFolder {
 	}
 }
 
-AddFolder($out);
+# AddFolder($out);
+my @subgen = $out->children;
+
+foreach ( @subgen ) {
+	if ($_->is_file) {
+		AddFolder($_)
+	}
+}
+
+$index = $index . "<hr>";
+
+foreach ( @subgen ) {
+	if ($_->is_dir) {
+		AddFolder($_)
+	}
+}
 
 $index = $index . "\t</ul></div>\n";
 
