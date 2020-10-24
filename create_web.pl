@@ -21,7 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-use strict;
+#use strict;
 use warnings;
 
 use Path::Tiny;
@@ -43,7 +43,28 @@ $out->mkpath();
 
 my $files = $start->iterator( {recurse => 1} );
 
-my $highlighter = new Syntax::Kamelon(formatter => ["HTML4"], noindex => 1);
+my $highlighter = new Syntax::Kamelon(formatter => ["HTML4"]); ## Not sure if should init once or each time
+
+sub SuggestSyntax {
+        my $file = $_[0];
+        my $hsh = $highlighter->GetIndexer->Extensions;
+        foreach my $key (keys %$hsh) {
+				next if !$key;
+				my @regs = split /;/, $key;
+				foreach (@regs) {
+					next if !$_;
+					my $reg = $_;
+					$reg =~ s/\./\\./g;
+					$reg =~ s/\+/\\+/g;
+					$reg =~ s/\*/.*/g;
+					$reg = "$reg\$";
+                	if ($file =~ /$reg/) {
+                    	    return $hsh->{$key}->[0]
+                	}
+				}
+        }
+        return undef;
+}
 
 while (my $f = $files->()) { # Go over every file in folder
 	next if $f =~ m/^\.git/;
@@ -61,8 +82,10 @@ while (my $f = $files->()) { # Go over every file in folder
 		print "\t", colored("(LO/$outfmt) $f -> $nf", "cyan"), "\n";
 		system($opt_l . " --headless --convert-to " . $outfmt . " --outdir \"" . $outsub . "\" \"" . $f . "\"");
 	} else {
-		my $syn = $highlighter->SuggestSyntax($f->basename);
-		next if !$syn;
+		my $syn = SuggestSyntax($f->basename);
+		if (!$syn) {
+			$syn = "JSP"; # TODO Make CLI option for default
+		}
 
 		$highlighter->Syntax($syn);
 
@@ -92,7 +115,7 @@ my $index = "<html><head><link rel='stylesheet' href='https://www.w3schools.com/
 #}
 
 sub AddFolder {
-	my $file = @_[0];
+	my $file = $_[0];
 	if ( $file->is_dir ) {
 		print "\t", colored("Adding $file", "green"), "\n";
 		$index = $index . "\t<li>" .$file->basename . "</li>";
