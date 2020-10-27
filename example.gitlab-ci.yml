@@ -1,0 +1,20 @@
+image: "perl:5.20"
+
+before_script:
+  - apt-get update
+  - apt-get install libreoffice -y
+  - cpan Path::Tiny
+  - cpan Syntax::Kamelon
+  - curl -O https://raw.githubusercontent.com/vinceh121/libreoffice-web-perl/mistress/create_web.pl
+
+pages:
+  stage: deploy
+  environment: production
+  script:
+    - perl create_web.pl
+    - mv html public
+
+  artifacts:
+      paths:
+          - public/
+
